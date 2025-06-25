@@ -341,7 +341,7 @@ chatbot/
 ## 📞 İletişim
 
 **Öğrenci:** Semih Semerci  
-**Email:** semih.semerci@marun.edu.tr  
+**Email:** semihsemerci@marun.edu.tr  
 **Öğrenci No:** 170422824  
 **Proje Tarihi:** Haziran 2025
 
