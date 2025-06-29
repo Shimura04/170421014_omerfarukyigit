@@ -1,0 +1,71 @@
+{
+  "evaluation_info": {
+    "timestamp": "2025-06-29T23:53:01.505702",
+    "models_tested": [
+      "Llama-3.2-3B",
+      "Gemini-1.5-flash"
+    ],
+    "evaluation_type": "Intent Classification + Response Quality"
+  },
+  "intent_classification": {
+    "accuracy": 0.9689922480620154,
+    "precision": 0.9689922480620154,
+    "recall": 0.9689922480620154,
+    "f1_score": 0.9689922480620154,
+    "average_confidence": 0.9598599330872384,
+    "classification_report": {
+      "farewell": {
+        "precision": 0.9487179487179487,
+        "recall": 0.9487179487179487,
+        "f1-score": 0.9487179487179487,
+        "support": 39.0
+      },
+      "greeting": {
+        "precision": 0.95,
+        "recall": 0.95,
+        "f1-score": 0.95,
+        "support": 40.0
+      },
+      "technical_help": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 50.0
+      },
+      "accuracy": 0.9689922480620154,
+      "macro avg": {
+        "precision": 0.9662393162393162,
+        "recall": 0.9662393162393162,
+        "f1-score": 0.9662393162393162,
+        "support": 129.0
+      },
+      "weighted avg": {
+        "precision": 0.9689922480620154,
+        "recall": 0.9689922480620154,
+        "f1-score": 0.9689922480620154,
+        "support": 129.0
+      }
+    },
+    "test_samples": 129
+  },
+  "response_quality": {
+    "response_metrics": {
+      "llama_metrics": {
+        "avg_length": 0.0,
+        "error_count": 0,
+        "success_rate": 0.0
+      },
+      "gemini_metrics": {
+        "avg_length": 0.0,
+        "error_count": 0,
+        "success_rate": 0.0
+      }
+    },
+    "sample_responses": {
+      "llama_responses": [],
+      "gemini_responses": [],
+      "questions": [],
+      "true_intents": []
+    }
+  }
+}

@@ -23,7 +23,7 @@ from langchain.chains import create_retrieval_chain
 load_dotenv()
 
 # Başlık
-st.set_page_config(page_title="Tıbbi Asistan Chatbot", layout="wide")
+st.set_page_config(page_title="Ubuntu Help Chatbot", layout="wide")
 
 # Sol üst köşe başlık 
 st.sidebar.markdown("""
@@ -42,7 +42,7 @@ st.sidebar.markdown("""
         border-bottom: 1px solid #444;
     }
     </style>
-    <div class="sidebar-title">🏥 Tıbbi Asistan</div>
+    <div class="sidebar-title"> 💻 Ubuntu Helpdesk</div>
 """, unsafe_allow_html=True)
 
 # Session state
@@ -59,17 +59,17 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Intent Model ve Label Encoder Yükleme
-model_path = os.path.join(BASE_DIR, "..", "data", "medical_intent_classifier.joblib")
-encoder_path = os.path.join(BASE_DIR, "..", "data", "medical_label_encoder.joblib")
+model_path = os.path.join(BASE_DIR, "..", "data", "intent_classifier.joblib")
+encoder_path = os.path.join(BASE_DIR, "..", "data", "label_encoder.joblib")
 
 if not os.path.exists(model_path):
     try:
-        st.info("🔄 Model dosyası bulunamadı, yeni model eğitiliyor...")
+        st.info("🔄  Model file not found, training a new model...")
         
         # Dataset dosyasının varlığını kontrol et
-        dataset_path = os.path.join(BASE_DIR, "..", "medibot_dataset_complete.xlsx")
+        dataset_path = os.path.join(BASE_DIR, "..", "ubuntu_chatbot_dataset.xlsx")
         if not os.path.exists(dataset_path):
-            st.error(f"❌ Dataset dosyası bulunamadı: {dataset_path}")
+            st.error(f"❌ Dataset file not found: {dataset_path}")
             st.stop()
         
         # Data klasörünü oluştur (yoksa)
@@ -77,36 +77,36 @@ if not os.path.exists(model_path):
         os.makedirs(data_dir, exist_ok=True)
         
         # Tamamlanmış dataset'i yükle
-        st.write(f"📂 Dataset yükleniyor: {dataset_path}")
+        st.write(f"📂 Loading dataset: {dataset_path}")
         df = pd.read_excel(dataset_path)
         df = df.dropna()
         
         if df.empty:
-            st.error("❌ Dataset boş!")
+            st.error("❌ Dataset is empty!")
             st.stop()
         
         # Sütun kontrolü
         required_columns = ['user_message', 'balanced_intent']
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
-            st.error(f"❌ Dataset'te eksik sütunlar: {missing_columns}")
-            st.write("Mevcut sütunlar:", list(df.columns))
+            st.error(f"❌ Missing columns on dataset: {missing_columns}")
+            st.write("Existing Columns", list(df.columns))
             st.stop()
         
         # Dengeli veri setinde balanced_intent kullan
-        st.write(f"📊 Dataset yüklendi: {len(df)} örnek")
-        st.write(f"🏷️ Kategori sayısı: {len(df['balanced_intent'].unique())} adet")
+        st.write(f"📊 Dataset loaded: {len(df)} örnek")
+        st.write(f"🏷️ Number of categories: {len(df['balanced_intent'].unique())} adet")
         
         # Dengeli intent'leri kullan
         df['simplified_intent'] = df['balanced_intent']
         
         # Intent dağılımını göster
         intent_counts = df['simplified_intent'].value_counts()
-        st.write("📈 Dataset Dağılımı:")
+        st.write("📈 Dataset Distribution:")
         st.dataframe(intent_counts)
 
         # Embedding modeli yükle
-        st.write("🤖 Model eğitimi için embedding modeli hazırlanıyor...")
+        st.write("🤖 Preparing embedding model for training...")
         import torch
         
         # Device belirleme
@@ -123,14 +123,14 @@ if not os.path.exists(model_path):
                 device=device
             )
         except:
-            st.warning("⚠️ Ana model yüklenemedi, alternatif model kullanılıyor...")
+            st.warning("⚠️ Main model could not be loaded, using alternative model...")
             embedding_model_training = SentenceTransformer(
                 "sentence-transformers/all-MiniLM-L6-v2",
                 device="cpu"
             )
         
         # Embedding oluştur
-        st.write("🔄 Embeddings oluşturuluyor...")
+        st.write("🔧 Generating embeddings...")
         X = embedding_model_training.encode(df["user_message"].tolist())
         
         # Label encoder
@@ -139,26 +139,26 @@ if not os.path.exists(model_path):
         y = le.fit_transform(df["simplified_intent"])
 
         # Model Eğitim
-        st.write("⚙️ Model eğitiliyor...")
+        st.write("🏋️ Training the model...")
         clf = LogisticRegression(max_iter=1000, random_state=42, C=1.0, class_weight='balanced')
         clf.fit(X, y)
         
         # Model performansını test et
         from sklearn.model_selection import cross_val_score
         scores = cross_val_score(clf, X, y, cv=5)
-        st.success(f"✅ Model eğitildi! Doğruluk: {scores.mean():.3f}")
+        st.success(f"✅ Model trained! Accuracy: {scores.mean():.3f}")
 
         # Kaydet
-        st.write("💾 Model kaydediliyor...")
+        st.write("💾 Saving the model...")
         joblib.dump(clf, model_path)
         joblib.dump(le, encoder_path)
-        st.success(f"✅ Model başarıyla kaydedildi!")
-        st.success(f"📁 Model dosyası: {model_path}")
-        st.success(f"📁 Encoder dosyası: {encoder_path}")
+        st.success(f"✅ Model saved successfully!")
+        st.success(f"📁 Model folder: {model_path}")
+        st.success(f"📁 Encoder folder: {encoder_path}")
         
     except Exception as e:
-        st.error(f"❌ Model eğitimi sırasında hata: {str(e)}")
-        st.error(f"Hata tipi: {type(e).__name__}")
+        st.error(f"❌ Error during model training: {str(e)}")
+        st.error(f"Error Type: {type(e).__name__}")
         import traceback
         st.code(traceback.format_exc())
         st.stop()
@@ -167,9 +167,9 @@ else:
         # Mevcut modeli yükle
         clf = joblib.load(model_path)
         le = joblib.load(encoder_path)
-        st.success("✅ Mevcut model başarıyla yüklendi!")
+        st.success("🤖 Existing model loaded successfully!")
     except Exception as e:
-        st.error(f"❌ Model yüklenirken hata: {str(e)}")
+        st.error(f"❌ Error while loading the model: {str(e)}")
         st.stop()
 
 # Embedding modeli güvenli yükleme
@@ -185,19 +185,19 @@ def load_embedding_model():
         else:
             device = "cpu"
         
-        st.info(f"🤖 Embedding modeli yükleniyor... (Device: {device})")
+        st.info(f"🤖 Embedding model is loading... (Device: {device})")
         
         # Türkçe destekli model - device belirtme
         model = SentenceTransformer(
             "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
             device=device
         )
-        st.success("✅ Embedding modeli başarıyla yüklendi!")
+        st.success("✅ Embedding loaded successfully!")
         return model
         
     except Exception as e:
-        st.warning(f"⚠️ Ana model yüklenemedi: {e}")
-        st.info("🔄 Alternatif model deneniyor...")
+        st.warning(f"⚠️ Can't load the main model: {e}")
+        st.info("🔄 Trying for alternate model...")
         
         # Fallback: Daha basit model
         try:
@@ -205,10 +205,10 @@ def load_embedding_model():
                 "sentence-transformers/all-MiniLM-L6-v2",
                 device="cpu"  # CPU'da çalıştır
             )
-            st.success("✅ Alternatif embedding modeli yüklendi!")
+            st.success("✅  Alternative embedding model loaded!")
             return model
         except Exception as e2:
-            st.error(f"❌ Hiçbir embedding model yüklenemedi: {e2}")
+            st.error(f"🚫 No embedding model could be loaded: {e2}")
             return None
 
 # Global embedding model
@@ -218,7 +218,7 @@ embedding_model = load_embedding_model()
 def predict_intent(text):
     if embedding_model is None:
         # Fallback: güvenilir değil
-        return "non_medical", 0.1
+        return "not_related", 0.1
     
     try:
         # Metni encode et
@@ -242,60 +242,7 @@ def predict_intent(text):
         
     except Exception as e:
         print(f"Intent tahmin hatası: {e}")
-        return "non_medical", 0.1
-
-# Akıllı acil durum kontrolü - Dengeli kategorilere göre
-def is_emergency(intent, user_message="", urgency_level="UNKNOWN"):
-    # GERÇEK ACİL DURUMLAR (112'lik)
-    true_emergency_keywords = [
-        'nefes alamıyorum', 'göğsümde ağrı', 'bayılıyorum', 'bayıldım',
-        'bilinç kaybı', 'felç geçirdim', 'kalbim duruyor', 'şiddetli göğüs ağrısı',
-        'kalp krizi', 'nefes darlığı çok şiddetli', 'öldürücü ağrı',
-        'intihar etmek', 'kendimi öldürmek', 'çok yüksek ateş 40',
-        'şuur kaybı', 'komada', 'kanama durmuyor', 'çok fazla kan kaybı',
-        'zehirlendim', 'overdoz', 'aşırı doz'
-    ]
-    
-    # Sözcük kontrolü (Türkçe küçük harf)
-    message_lower = user_message.lower()
-    has_true_emergency = any(keyword in message_lower for keyword in true_emergency_keywords)
-    
-    # Sadece GERÇEK emergency intent'i VE kritik kelimeler varsa acil
-    is_emergency_intent = intent == 'emergency'
-    is_critical_urgency = urgency_level == "CRITICAL"
-    
-    # ÇOCUK DOKTORU durumları acil değil
-    child_non_emergency = any(word in message_lower for word in [
-        'diken battı', 'çocuğ', 'kaşıntı', 'morarma', 'küçük yara'
-    ])
-    
-    # Gerçek acil: (Emergency intent VE kritik kelime) VEYA kritik urgency
-    return (is_emergency_intent and has_true_emergency) or is_critical_urgency
-
-# Tıbbi PDF için RAG (Eğer tıbbi dökümanınız varsa)
-faiss_index_path = os.path.join(BASE_DIR, "..", "data", "medical_faiss_index")
-embedding = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=os.getenv("GEMINI_API_KEY"))  # Gemini embedding kullan
-
-if os.path.exists(os.path.join(faiss_index_path, "index.faiss")):
-    vectorstore = FAISS.load_local(
-        folder_path=faiss_index_path,
-        embeddings=embedding,
-        allow_dangerous_deserialization=True
-    )
-    retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 5})
-else:
-    # Eğer tıbbi PDF'niz varsa buraya ekleyin
-    pdf_path = os.path.join(BASE_DIR, "..", "data", "medical_guide.pdf")  # PDF dosya yolunuz
-    if os.path.exists(pdf_path):
-        loader = PyPDFLoader(pdf_path)
-        docs = loader.load()
-        splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=50)
-        chunks = splitter.split_documents(docs)
-        vectorstore = FAISS.from_documents(chunks, embedding)
-        vectorstore.save_local(faiss_index_path)
-        retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 5})
-    else:
-        retriever = None
+        return "not_related", 0.1
 
 # LLM Modeller
 llm_gemini = ChatGoogleGenerativeAI(
@@ -313,15 +260,20 @@ llm_llama = ChatOllama(
     num_predict=500,
 )
 
-# Tıbbi Prompt
+# Prompt
 system_prompt = (
-    "Sen deneyimli bir tıbbi asistansın. Kullanıcıların sağlık sorularına yardımcı oluyorsun. "
-    "ÖNEMLİ UYARILAR:\n"
-    "1. Kesin teşhis koymayın, sadece genel bilgi verin\n"
-    "2. Acil durumlarda mutlaka doktora başvurmasını söyleyin\n"
-    "3. İlaç önerisi yapmayın, sadece genel tavsiyelerde bulunun\n"
-    "4. Cevaplarınızı kısa ve anlaşılır tutun\n\n"
-    "Verilen içerik: {context}"
+    "You are an experienced technical assistant specializing in Ubuntu operating system support. You help users solve Ubuntu-related issues in a clear and user-friendly manner."
+
+    "IMPORTANT GUIDELINES:"
+
+    "1. Do NOT execute system commands or make changes directly — only explain steps clearly."
+    "2. If the issue is critical (e.g., system crash or boot failure), advise the user to consult an experienced technician or support forum."
+    "3. Do NOT recommend or install third-party scripts or software unless they are officially trusted."
+    "4. Always keep your answers concise, beginner-friendly, and structured step-by-step."
+    "5. When needed, explain terminal commands and their effects briefly."
+
+    "Your role is to support users with Ubuntu desktop and server problems, including package issues, system settings, permissions, updates, and basic troubleshooting."
+    "Content given: {context}"
 )
 
 prompt = ChatPromptTemplate.from_messages([
@@ -342,25 +294,21 @@ def run_rag_chain(question, model_choice):
         llm = llm_gemini
         qa_chain = qa_chain_gemini
     
-    if retriever:
-        chain = create_retrieval_chain(retriever, qa_chain)
-        result = chain.invoke({"input": question})
-        return result.get("answer")
-    else:
-        # RAG olmadan direkt LLM
         if "Llama" in model_choice:
             # Llama için sistem promptu dahil etme
-            full_prompt = f"""Sen deneyimli bir tıbbi asistansın. Kullanıcıların sağlık sorularına yardımcı oluyorsun.
+            full_prompt = f"""You are an experienced technical assistant specializing in Ubuntu operating system support. You help users solve Ubuntu-related issues in a clear and user-friendly manner.
 
-ÖNEMLİ UYARILAR:
-1. Kesin teşhis koymayın, sadece genel bilgi verin
-2. Acil durumlarda mutlaka doktora başvurmasını söyleyin
-3. İlaç önerisi yapmayın, sadece genel tavsiyelerde bulunun
-4. Cevaplarınızı kısa ve anlaşılır tutun
+IMPORTANT GUIDELINES:
 
-Soru: {question}
+1. Do NOT execute system commands or make changes directly — only explain steps clearly.
+2. If the issue is critical (e.g., system crash or boot failure), advise the user to consult an experienced technician or support forum.
+3. Do NOT recommend or install third-party scripts or software unless they are officially trusted.
+4. Always keep your answers concise, beginner-friendly, and structured step-by-step.
+5. When needed, explain terminal commands and their effects briefly.
 
-Cevap:"""
+Question: {question}
+
+Answer:"""
             response = llm.invoke(full_prompt)
             return response.content
         else:  # Gemini
@@ -368,145 +316,123 @@ Cevap:"""
 
 # Sidebar ayarları
 with st.sidebar:
-    st.header("⚙️ Ayarlar")
-    model_choice = st.selectbox("🤖 Model Seçimi:", [
+    st.header("⚙️ Settings")
+    model_choice = st.selectbox("🤖 Model Selection:", [
         "Gemini-1.5-flash", 
         "Llama-3.2-3B (Local)",
-        "Karşılaştırma (Her İkisi)"
+        "Compare (Both)"
     ])
     
     # Model karşılaştırma özelliği
-    if model_choice == "Karşılaştırma (Her İkisi)":
-        st.info("🔄 Gemini ve Llama modelleri karşılaştırılacak!")
+    if model_choice == "Compare (Both)":
+        st.info("🔄 Gemini and Llama models are going to compare!")
     elif model_choice == "Llama-3.2-3B (Local)":
-        st.success("🦙 Local Llama modeli kullanılıyor - API key gerekmez!")
+        st.success("🦙 Local Llama model is being use - No API key needed!")
     
-    # Acil durum uyarısı
-    st.error("""
-    🚨 **ACİL DURUM UYARISI**
-    Bu chatbot tıbbi tavsiye vermez!
-    Acil durumlar için:
-    📞 112 - Ambulans
-    🏥 En yakın hastaneye gidin
-    """)
     
-    if st.button("🗑️ Geçmişi Temizle"):
+    if st.button("🗑️ Clear History"):
         st.session_state.chat_history = []
         st.rerun()
     
     # Model karşılaştırması geçmişi
     if len(st.session_state.model_comparisons) > 0:
         st.markdown("---")
-        st.subheader("📊 Model Karşılaştırması")
-        st.write(f"Toplam karşılaştırma: {len(st.session_state.model_comparisons)}")
+        st.subheader("📊 Model Comparison")
+        st.write(f"Total Tomparison: {len(st.session_state.model_comparisons)}")
         
-        if st.button("📈 Karşılaştırma Analizi"):
+        if st.button("📈 Comparison Analysis"):
             st.session_state.show_comparison_analysis = True
         
-        if st.button("🗑️ Karşılaştırmaları Temizle"):
+        if st.button("🗑️ Clear the comparisons"):
             st.session_state.model_comparisons = []
             st.rerun()
 
 # Ana başlık
-st.title("🏥 Tıbbi Asistan Chatbot")
-st.markdown("*Sağlık sorularınızda size yardımcı olmak için buradayım. Acil durumlar için mutlaka 112'yi arayın!*")
+st.title("💻 Ubuntu Help Chatbot")
+st.markdown("*Ask anything about Ubuntu*")
 
 # Geçmişi göster
 if st.session_state.chat_history:
-    st.markdown("## 💬 Sohbet Geçmişi")
+    st.markdown("## 💬 Chat History")
     for i, (q, a, m) in enumerate(st.session_state.chat_history):
-        st.markdown(f"**Soru {i+1}:** {q}")
-        st.markdown(f"**Yanıt ({m}):** {a}")
+        st.markdown(f"**Question {i+1}:** {q}")
+        st.markdown(f"**Answer ({m}):** {a}")
         st.markdown("---")
 
 # Kullanıcı input
-user_input = st.text_input("💭 Sağlık sorunuzu yazın:", placeholder="Örn: Başım ağrıyor ne yapmalıyım?")
-st.button("📤 Gönder", use_container_width=True)
+user_input = st.text_input("💭 Ask your question:", placeholder="Example: How to update apt?")
+st.button("📤 Send", use_container_width=True)
 
 if user_input:
-    with st.spinner("🤔 Düşünüyor..."):
+    with st.spinner("🤔 Thinking..."):
         # Intent tahmin et
         intent, confidence = predict_intent(user_input)
         
-        # Sadece tıbbi kategoriler tanımla (greeting ve farewell hariç)
-        medical_categories = {
-            'general_consultation', 'emergency', 'ophthalmology', 'digestive', 
-            'orthopedic', 'otolaryngology', 'respiratory', 'pediatric', 
-            'neurology', 'cardiovascular', 'urology', 'dermatology', 
-            'geriatric', 'endocrine', 'mental_health', 'medication', 
-            'womens_health', 'pain_management'
+        # Sadece doğru kategoriler tanımla (greeting ve farewell hariç)
+        ubuntu_categories = {
+            "networking","terminal_usage","system_configuration","file_operations","package_management","user_management","process_management","disk_and_partition","security",'other'
         }
         
         # SIKI Confidence threshold kontrolü ve kategori filtreleme
-        # Sadece yüksek güvenle ve tıbbi kategorilerde cevap ver
-        if confidence < 0.6 or intent == "non_medical" or (intent not in medical_categories and intent not in ['greeting', 'farewell']):
+        if confidence < 0.6 or intent == "not_related" or (intent not in ubuntu_categories and intent not in ['greeting', 'farewell']):
             answer = f"""
-            🏥 **Üzgünüm, bu soruyu yanıtlayamıyorum.**
-            
-            Ben sadece aşağıdaki tıbbi konularda yardımcı olabilirim:
-            
-            **🩺 Tıbbi Uzmanlık Alanlarım:**
-            🫀 Kardiyoloji (Kalp ve damar hastalıkları)
-            🧠 Nöroloji (Sinir sistemi hastalıkları) 
-            👁️ Göz hastalıkları (Oftalmoloji)
-            🦴 Ortopedi (Kemik ve eklem hastalıkları)
-            👂 Kulak-Burun-Boğaz hastalıkları
-            🫁 Solunum yolu hastalıkları
-            👶 Çocuk hastalıkları (Pediatri)
-            🍽️ Sindirim sistemi hastalıkları
-            🩺 Genel tıbbi danışmanlık
-            💊 İlaç bilgileri ve kullanımı
-            👩‍⚕️ Kadın sağlığı
-            🧓 Geriatri (Yaşlılık hastalıkları)
-            🏥 Acil durumlar
-            🧴 Deri hastalıkları
-            ⚖️ Hormon hastalıkları (Endokrin)
-            🧠 Ruh sağlığı
-            💉 Ağrı yönetimi
-            🚽 Üroloji (İdrar yolu hastalıkları)
-            
-            **Lütfen yukarıdaki konulardan biriyle ilgili soru sorun.**
-            
-            🚨 **Acil durumda 112'yi arayın!**
+            I can only assist you with the following topics related to Ubuntu and Linux systems:
+
+            🧠 My Expertise Areas:
+
+            💻 General Ubuntu support (installations, updates, package issues)
+            🔧 Terminal commands and usage (bash, apt, dpkg, etc.)
+            📦 Software and package management
+            🧱 System performance and monitoring
+            🌐 Network configuration and troubleshooting
+            👤 User and permission management
+            🛡️ Security and firewall settings
+            🎨 Desktop environment issues (GNOME, KDE, XFCE...)
+            📁 File system and storage (mount, disk, partitions)
+            🐧 Linux kernel and modules
+            💡 Tips and best practices for Ubuntu users
+            📥 Dual boot and virtualization issues
+            📦 Snap, Flatpak, AppImage usage
+            🧩 Troubleshooting installation errors
+            ⚙️ System services and daemons (systemd, cron, etc.)
+
+             Please ask a question related to one of the topics above.
+
+            🔄 If you're unsure where to start, try asking something like:
+            “How can I install a .deb file on Ubuntu?”
+                or
+            “Why is my Wi-Fi not working on Ubuntu 22.04?”
+
+
             """
-            intent_display = f"KONU DIŞI - Intent: {intent} (Güven: {confidence:.2f})"
+            intent_display = f"Out of Scope - Intent: {intent} (Confidence: {confidence:.2f})"
         
-        # Eğer intent konu dışı ise sabit cevap (dataset'teki gerçek non_medical intent'i)
+        # Eğer intent konu dışı ise sabit cevap 
         elif intent == "greeting":
             greetings = [
-                "Merhaba! Size sağlık konularında nasıl yardımcı olabilirim? 🏥",
-                "Selam! Sağlık sorunlarınızla ilgili sorularınızı bekliyorum. 😊",
-                "İyi günler! Tıbbi konularda size nasıl destek olabilirim? 🩺",
-                "Hoş geldiniz! Sağlığınızla ilgili merak ettiklerinizi sorabilirsiniz. 💙",
-                "Merhaba! Ben tıbbi asistan chatbot'uyum. Size nasıl yardımcı olabilirim? 🤖"
+                "Hello! How can I assist you with Ubuntu today? 🐧",
+                "Hi there! Feel free to ask any Ubuntu-related questions. 💻",
+                "Welcome! I'm here to help you with your Ubuntu system. 😊",
+                "Greetings! Need help with commands or troubleshooting in Ubuntu? 🔧",
+                "Hey! I’m your Ubuntu assistant bot. Ask me anything. 🤖"
             ]
             import random
             answer = random.choice(greetings)
         # Farewell (Vedalaşma) mesajları  
         elif intent == "farewell":
             farewells = [
-                "Görüşürüz! Sağlıklı günler dilerim. 🌟",
-                "Hoşça kalın! Kendinize iyi bakın. 💚",
-                "Güle güle! Başka sorularınız olursa buradayım. 👋",
-                "İyi günler! Sağlığınızda kalın. 🙏",
-                "Elveda! Her zaman sağlık konularında yardımcı olmaya hazırım. 😊",
-                "Sağlıcakla kalın! Tekrar görüşmek dileğiyle. 🌈"
+                "See you later! Happy Ubuntu-ing! 🧡",
+                "Goodbye! Feel free to return with more questions. 👋",
+                "Take care! Wishing you smooth Linux experiences. 🐧",
+                "Bye! I'm always here if you need Ubuntu support again. 💬",
+                "Farewell! Don't forget to keep your system updated. 🔄"
             ]
             import random
             answer = random.choice(farewells)
-        elif is_emergency(intent, user_input):
-            answer = f"""
-            🚨 **ACİL DURUM TESPİT EDİLDİ!**
-            
-            Lütfen derhal:
-            📞 112'yi arayın
-            🏥 En yakın hastaneye gidin
-            
-            Bu ciddi bir durum olabilir ve profesyonel tıbbi müdahale gerektirir.
-            """
+
         else:
-            # Normal tıbbi sorular - Model seçimine göre çalıştır
-            if model_choice == "Karşılaştırma (Her İkisi)":
+            # Normal sorular - Model seçimine göre çalıştır
+            if model_choice == "Comprasion (Both)":
                 # Her iki modeli de çalıştır
                 answers = {}
                 models_to_test = ["Gemini-1.5-flash", "Llama-3.2-3B (Local)"]
@@ -518,11 +444,12 @@ if user_input:
                         # Eğer çok kısa cevap geliyorsa, detaylandır
                         if len(current_answer) < 100:
                             enhanced_prompt = f"""
-                            Kullanıcının sağlık sorusu: "{user_input}"
-                            Tespit edilen kategori: {intent}
-                            
-                            Bu sağlık sorusuna detaylı, faydalı ve empati dolu bir yanıt ver.
-                            Genel tavsiyeler, dikkat edilmesi gerekenler ve ne zaman doktora başvurulması gerektiğini belirt.
+                            User's Ubuntu question: "{user_input}"
+                            Detected category: {intent}
+
+                            Provide a detailed, helpful, and user-friendly answer to this Ubuntu-related issue.
+                            Include relevant terminal commands if necessary, explain key steps clearly,
+                            and remind the user to take precautions such as backing up data before making major changes.
                             """
                             if "Llama" in model:
                                 current_answer = llm_llama.invoke(enhanced_prompt).content
@@ -530,15 +457,15 @@ if user_input:
                                 current_answer = llm_gemini.invoke(enhanced_prompt).content
                         
                         # Güvenlik uyarısı ekle
-                        current_answer += "\n\n⚠️ *Bu bilgi genel amaçlıdır. Kesin teşhis için doktora başvurun.*"
+                        current_answer += "\n\n⚠️ *Remember to back up your data before applying critical system changes. Use terminal commands carefully.*"
                         answers[model] = current_answer
                         
                     except Exception as e:
                         error_msg = str(e)
-                        if "API key" in error_msg.lower() or "unauthorized" in error_msg.lower():
-                            answers[model] = f"❌ API Key Hatası: {model} için API anahtarı geçersiz veya eksik."
+                        if "API key" in error_msg.lower() or "Unauthorized" in error_msg.lower():
+                            answers[model] = f"❌ API Key Error: {model} invalid or missing API Key."
                         else:
-                            answers[model] = f"❌ Hata: {model} - {error_msg[:100]}"
+                            answers[model] = f"❌ Error: {model} - {error_msg[:100]}"
                 
                 # Karşılaştırma sonucunu kaydet
                 comparison_data = {
@@ -553,12 +480,12 @@ if user_input:
                 
                 # Karşılaştırmalı yanıtı hazırla
                 answer = f"""
-                ## 🤖 **Gemini-1.5-flash Yanıtı:**
+                ## 🤖 **Gemini-1.5-flash Response:**
                 {answers.get('Gemini-1.5-flash', 'Hata oluştu')}
                 
                 ---
                 
-                ## 🦙 **Llama-3.2-3B (Local) Yanıtı:**
+                ## 🦙 **Llama-3.2-3B (Local) Response:**
                 {answers.get('Llama-3.2-3B (Local)', 'Hata oluştu')}
                 """
                 
@@ -570,54 +497,52 @@ if user_input:
                     # Eğer çok kısa cevap geliyorsa, detaylandır
                     if len(answer) < 100:
                         enhanced_prompt = f"""
-                        Kullanıcının sağlık sorusu: "{user_input}"
-                        Tespit edilen kategori: {intent}
-                        
-                        Bu sağlık sorusuna detaylı, faydalı ve empati dolu bir yanıt ver.
-                        Genel tavsiyeler, dikkat edilmesi gerekenler ve ne zaman doktora başvurulması gerektiğini belirt.
-                        """
+                            User's Ubuntu question: "{user_input}"
+                            Detected category: {intent}
+                            
+                            Provide a detailed, helpful, and user-friendly answer to this Ubuntu-related issue.
+                            Include relevant terminal commands if necessary, explain key steps clearly,
+                            and remind the user to take precautions such as backing up data before making major changes.
+                            """
                         if "Llama" in model_choice:
                             answer = llm_llama.invoke(enhanced_prompt).content
                         else:
                             answer = llm_gemini.invoke(enhanced_prompt).content
                     
                     # Güvenlik uyarısı ekle
-                    answer += "\n\n⚠️ *Bu bilgi genel amaçlıdır. Kesin teşhis için doktora başvurun.*"
+                    answer += "\n\n⚠️ *Remember to back up your data before applying critical system changes. Use terminal commands carefully.*"
                     
                 except Exception as e:
                     error_msg = str(e)
                     if "API key" in error_msg.lower() or "unauthorized" in error_msg.lower():
                         answer = f"""
-                        ❌ **API Key Hatası**
-                        
-                        {model_choice} modeli için API anahtarı geçersiz veya eksik.
-                        Lütfen .env dosyasında API anahtarınızı kontrol edin.
-                        
-                        Geçici çözüm:
-                        🔹 Farklı bir model seçin
-                        🔹 API anahtarınızı yenileyin
+                        The API key for the {model_choice} model is invalid or missing.
+                        Please check your API key in the .env file.
+    
+                        Temporary solutions:
+                        🔹 Select a different model
+                        🔹 Renew your API key
                         """
                     else:
                         answer = f"""
-                        ❌ **Teknik Hata**
+                        ❌ **Technical Error**
                         
-                        Hata: {error_msg[:150]}
+                        Error: {error_msg[:150]}
                         
-                        Genel tavsiyem:
-                        🔹 Ciddi belirtileriniz varsa doktora başvurun
-                        🔹 Acil durumda 112'yi arayın
-                        🔹 Sorunuzun kategorisi: {intent}
+                        My general advice:
+                        🔹 If you have severe symptoms, please consult a doctor
+                        🔹 In case of emergency, call your local emergency number (e.g., 112)
+                        🔹 Detected category of your question: {intent}
                         """
-        
         # Sonucu göster
-        st.markdown(f"**❓ Soru:** {user_input}")
-        st.markdown(f"**🤖 Yanıt ({model_choice}):** {answer}")
+        st.markdown(f"**❓ Question** {user_input}")
+        st.markdown(f"**🤖 Answer ({model_choice}):** {answer}")
         
         # Intent bilgisini göster
-        if confidence < 0.6 or intent == "non_medical" or (intent not in medical_categories and intent not in ['greeting', 'farewell']):
+        if confidence < 0.6 or intent == "not_related" or (intent not in ubuntu_categories and intent not in ['greeting', 'farewell']):
             st.markdown(f"**🏷️ Intent:** {intent_display}")
         else:
-            st.markdown(f"**🏷️ Intent:** {intent} (Güven: {confidence:.2f})")
+            st.markdown(f"**🏷️ Intent:** {intent} (Confidence: {confidence:.2f})")
         st.markdown("---")
         
         # Geçmişe ekle
@@ -625,7 +550,7 @@ if user_input:
 
 # Model Karşılaştırma Analizi
 if st.session_state.get("show_comparison_analysis", False) and len(st.session_state.model_comparisons) > 0:
-    st.markdown("## 📊 Model Karşılaştırma Analizi")
+    st.markdown("## 📊 Model Cpmrasion Anaylsis")
     
     # DataFrame oluştur
     df_comparisons = pd.DataFrame(st.session_state.model_comparisons)
@@ -633,28 +558,28 @@ if st.session_state.get("show_comparison_analysis", False) and len(st.session_st
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric("Toplam Karşılaştırma", len(df_comparisons))
+        st.metric("Total Comprasion", len(df_comparisons))
     
     with col2:
         avg_confidence = df_comparisons['confidence'].mean()
-        st.metric("Ortalama Güven", f"{avg_confidence:.3f}")
+        st.metric("Average Confidence", f"{avg_confidence:.3f}")
     
     with col3:
         unique_intents = df_comparisons['intent'].nunique()
-        st.metric("Farklı Intent", unique_intents)
+        st.metric("Different Intent", unique_intents)
     
     # Intent dağılımı
-    st.subheader("🏷️ Intent Dağılımı")
+    st.subheader("🏷️ Intent Distribution")
     intent_counts = df_comparisons['intent'].value_counts()
     st.bar_chart(intent_counts)
     
     # Tablo görünümü
-    st.subheader("📋 Karşılaştırma Detayları")
+    st.subheader("📋 Comprasion Details")
     
     for i, row in df_comparisons.iterrows():
         with st.expander(f"Soru {i+1}: {row['question'][:60]}... ({row['intent']})"):
-            st.write(f"**Intent:** {row['intent']} (Güven: {row['confidence']:.3f})")
-            st.write(f"**Zaman:** {row['timestamp']}")
+            st.write(f"**Intent:** {row['intent']} (Confidence: {row['confidence']:.3f})")
+            st.write(f"**Time:** {row['timestamp']}")
             
             col1, col2 = st.columns(2)
             
@@ -664,15 +589,15 @@ if st.session_state.get("show_comparison_analysis", False) and len(st.session_st
             
             with col2:
                 st.markdown("### 🦙 Llama")
-                st.write(row.get('llama_answer', 'Veri yok'))
+                st.write(row.get('llama_answer', 'No Data'))
     
     # Karşılaştırmayı JSON olarak kaydet
-    if st.button("💾 Karşılaştırmayı JSON'a Kaydet"):
+    if st.button("💾 Save the comprasion to JSON"):
         comparison_file = f"data/model_comparison_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.json"
         df_comparisons.to_json(comparison_file, orient='records', indent=2, force_ascii=False)
-        st.success(f"✅ Karşılaştırma kaydedildi: {comparison_file}")
+        st.success(f"✅ Comprasion Saved: {comparison_file}")
     
-    if st.button("❌ Analizi Kapat"):
+    if st.button("❌ Close Analysis"):
         st.session_state.show_comparison_analysis = False
         st.rerun()
 
@@ -680,7 +605,7 @@ if st.session_state.get("show_comparison_analysis", False) and len(st.session_st
 st.markdown("""
 ---
 <div style='text-align: center; color: #666; padding: 20px;'>
-    <p>🏥 Tıbbi Asistan Chatbot © 2024</p>
-    <p><small>⚠️ Bu chatbot tıbbi tavsiye vermez. Ciddi durumlar için doktora başvurun.</small></p>
+    <p>💻 Ubuntu Chatbot © 2025</p>
+    <p><small>⚠️ Please backup your data before any process </small></p>
 </div>
 """, unsafe_allow_html=True)

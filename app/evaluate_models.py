@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 Model Performans Değerlendirme - Llama vs Gemini
 Dataset'ten örnekleri test edip accuracy, precision, recall, F1-score hesaplar
@@ -25,8 +25,8 @@ sys.path.append('app')
 from streamlit_app import predict_intent
 
 def setup_models():
-    """Modelleri hazırla"""
-    print("🤖 Modeller hazırlanıyor...")
+    """Prepare Models"""
+    print("🤖 Preparing Models...")
     
     # Llama (Local)
     llama_model = ChatOllama(
@@ -47,10 +47,10 @@ def setup_models():
     return llama_model, gemini_model
 
 def load_test_dataset(sample_size=100):
-    """Dataset'ten test örnekleri yükle"""
-    print("📂 Test dataset'i yükleniyor...")
+    """Load the test"""
+    print("📂 Test Dataset Loading...")
     
-    df = pd.read_excel("medibot_dataset_complete.xlsx")
+    df = pd.read_excel("ubuntu_chatbot_dataset.xlsx")
     df = df.dropna()
     
     # Her intent'ten eşit sayıda örnek al
@@ -66,14 +66,14 @@ def load_test_dataset(sample_size=100):
         test_samples.append(intent_samples)
     
     test_df = pd.concat(test_samples, ignore_index=True)
-    print(f"✅ {len(test_df)} test örneği yüklendi")
+    print(f"✅ {len(test_df)} test example loaded")
     print(f"📊 {len(test_df['balanced_intent'].unique())} farklı intent")
     
     return test_df
 
 def evaluate_intent_classification(test_df):
-    """Intent classification performansını değerlend"""
-    print("\n🧠 Intent Classification değerlendiriliyor...")
+    """Rate Intent classification"""
+    print("\n🧠 Rating Intent Classification...")
     
     true_intents = test_df['balanced_intent'].tolist()
     predicted_intents = []
@@ -114,18 +114,17 @@ def evaluate_intent_classification(test_df):
     return intent_results
 
 def evaluate_response_quality(test_df, llama_model, gemini_model, sample_size=20):
-    """Yanıt kalitesini değerlendir"""
-    print(f"\n💬 Response Quality değerlendiriliyor ({sample_size} örnek)...")
+    """RateResponse Quality"""
+    print(f"\n💬 Rating Response Quality ({sample_size} example)...")
     
-    # Sadece tıbbi intent'leri al
-    medical_intents = ['general_consultation', 'emergency', 'cardiovascular', 'respiratory', 
-                      'neurology', 'pain_management', 'digestive', 'orthopedic']
+    # Sadece related intent'leri al
+    ubuntu_intents = ['generic_help', 'terminal_command', 'not_in_ubuntu']
     
-    medical_df = test_df[test_df['balanced_intent'].isin(medical_intents)]
-    if len(medical_df) < sample_size:
-        sample_size = len(medical_df)
+    ubuntu_df = test_df[test_df['balanced_intent'].isin(ubuntu_intents)]
+    if len(ubuntu_df) < sample_size:
+        sample_size = len(ubuntu_df)
     
-    test_samples = medical_df.sample(n=sample_size, random_state=42)
+    test_samples = ubuntu_df.sample(n=sample_size, random_state=42)
     
     results = {
         "llama_responses": [],
@@ -134,17 +133,19 @@ def evaluate_response_quality(test_df, llama_model, gemini_model, sample_size=20
         "true_intents": []
     }
     
-    medical_prompt_template = """Sen deneyimli bir tıbbi asistansın. Aşağıdaki sağlık sorusuna kısa ve net bir yanıt ver.
+    ubuntu_prompt_template = """You are an experienced technical assistant specializing in Ubuntu operating system support. You help users solve Ubuntu-related issues in a clear and user-friendly manner.
 
-ÖNEMLİ:
-- Kesin teşhis koymayın
-- Genel tavsiyeler verin
-- Acil durumlarda doktora başvurmayı söyleyin
-- Maksimum 2-3 cümle
+"IMPORTANT GUIDELINES:"
+
+    "1. Do NOT execute system commands or make changes directly — only explain steps clearly."
+    "2. If the issue is critical (e.g., system crash or boot failure), advise the user to consult an experienced technician or support forum."
+    "3. Do NOT recommend or install third-party scripts or software unless they are officially trusted."
+    "4. Always keep your answers concise, beginner-friendly, and structured step-by-step."
+    "5. When needed, explain terminal commands and their effects briefly."
 
 Soru: {question}
 
-Yanıt:"""
+Reaponse:"""
     
     for i, row in test_samples.iterrows():
         question = row['user_message']
@@ -154,20 +155,20 @@ Yanıt:"""
         
         # Llama yanıtı
         try:
-            llama_prompt = medical_prompt_template.format(question=question)
+            llama_prompt = ubuntu_prompt_template.format(question=question)
             llama_response = llama_model.invoke(llama_prompt).content
             results["llama_responses"].append(llama_response)
         except Exception as e:
-            print(f"❌ Llama hatası: {e}")
+            print(f"❌ Llama Error: {e}")
             results["llama_responses"].append(f"HATA: {str(e)}")
         
         # Gemini yanıtı
         try:
-            gemini_prompt = medical_prompt_template.format(question=question)
+            gemini_prompt = ubuntu_prompt_template.format(question=question)
             gemini_response = gemini_model.invoke(gemini_prompt).content
             results["gemini_responses"].append(gemini_response)
         except Exception as e:
-            print(f"❌ Gemini hatası: {e}")
+            print(f"❌ Gemini Error: {e}")
             results["gemini_responses"].append(f"HATA: {str(e)}")
         
         results["questions"].append(question)
@@ -180,24 +181,45 @@ Yanıt:"""
     return results
 
 def calculate_response_metrics(response_results):
-    """Yanıt metriklerini hesapla"""
-    print("📊 Response metrikleri hesaplanıyor...")
+    """Calculate response metrics"""
+    print("📊 Calculating response metrics...")
     
     llama_responses = response_results["llama_responses"]
     gemini_responses = response_results["gemini_responses"]
     
     # Basit metrikler
-    llama_metrics = {
-        "avg_length": np.mean([len(r) for r in llama_responses if not r.startswith("HATA")]),
-        "error_count": sum(1 for r in llama_responses if r.startswith("HATA")),
-        "success_rate": sum(1 for r in llama_responses if not r.startswith("HATA")) / len(llama_responses)
-    }
+    # Basit metrikler
+    if len(llama_responses) > 0:
+        successful_responses = [r for r in llama_responses if not r.startswith("ERROR")]
+        error_count = len(llama_responses) - len(successful_responses)
+
+        llama_metrics = {
+            "avg_length": np.mean([len(r) for r in successful_responses]) if successful_responses else 0.0,
+            "error_count": error_count,
+            "success_rate": len(successful_responses) / len(llama_responses)
+        }
+    else:
+        llama_metrics = {
+            "avg_length": 0.0,
+            "error_count": 0,
+            "success_rate": 0.0
+        }
     
-    gemini_metrics = {
-        "avg_length": np.mean([len(r) for r in gemini_responses if not r.startswith("HATA")]),
-        "error_count": sum(1 for r in gemini_responses if r.startswith("HATA")),
-        "success_rate": sum(1 for r in gemini_responses if not r.startswith("HATA")) / len(gemini_responses)
-    }
+    if len(gemini_responses) > 0:
+        successful_responses = [r for r in gemini_responses if not r.startswith("ERROR")]
+        error_count = len(gemini_responses) - len(successful_responses)
+
+        gemini_metrics = {
+            "avg_length": np.mean([len(r) for r in successful_responses]) if successful_responses else 0.0,
+            "error_count": error_count,
+            "success_rate": len(successful_responses) / len(gemini_responses)
+        }
+    else:
+        gemini_metrics = {
+            "avg_length": 0.0,
+            "error_count": 0,
+            "success_rate": 0.0
+        }
     
     return {
         "llama_metrics": llama_metrics,
@@ -205,7 +227,7 @@ def calculate_response_metrics(response_results):
     }
 
 def save_results(intent_results, response_results, response_metrics):
-    """Sonuçları JSON'a kaydet"""
+    """Save responses as JSON"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"data/model_evaluation_{timestamp}.json"
     
@@ -228,11 +250,11 @@ def save_results(intent_results, response_results, response_metrics):
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(final_results, f, indent=2, ensure_ascii=False)
     
-    print(f"💾 Sonuçlar kaydedildi: {filename}")
+    print(f"💾 Responses Saved: {filename}")
     return filename
 
 def main():
-    print("🚀 Model Performans Değerlendirmesi Başlıyor!")
+    print("🚀 Model Performance Evaluating Start!")
     print("=" * 60)
     
     try:
@@ -256,17 +278,17 @@ def main():
         
         # 7. Özet göster
         print("\n" + "="*60)
-        print("📈 SONUÇ ÖZETİ")
+        print("📈 Result")
         print("="*60)
         print(f"🎯 Intent Classification Accuracy: {intent_results['accuracy']:.3f}")
         print(f"🎯 Intent Classification F1-Score: {intent_results['f1_score']:.3f}")
         print(f"🦙 Llama Success Rate: {response_metrics['llama_metrics']['success_rate']:.3f}")
         print(f"🤖 Gemini Success Rate: {response_metrics['gemini_metrics']['success_rate']:.3f}")
-        print(f"💾 Detaylı sonuçlar: {result_file}")
-        print("✅ Değerlendirme tamamlandı!")
+        print(f"💾 Detailed Results: {result_file}")
+        print("✅ Evaluation Completed!")
         
     except Exception as e:
-        print(f"❌ Hata oluştu: {e}")
+        print(f"❌ Error: {e}")
         import traceback
         print(traceback.format_exc())
 
