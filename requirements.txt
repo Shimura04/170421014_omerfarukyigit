@@ -21,4 +21,27 @@ PyMuPDF
 # API istemcileri
 google-generativeai
 # Performance (optional)
+watchdogstreamlit
+pandas
+python-dotenv
+# ML
+scikit-learn
+joblib
+sentence-transformers
+numpy
+# LangChain 
+langchain
+langchain-community
+langchain-core
+langchain-google-genai
+langchain-ollama
+# Embed & Vector Store
+faiss-cpu
+transformers
+torch>=2.2.0
+# PDF işleme
+PyMuPDF
+# API istemcileri
+google-generativeai
+# Performance (optional)
 watchdog

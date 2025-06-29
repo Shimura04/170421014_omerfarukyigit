@@ -1,0 +1,125 @@
+{
+  "evaluation_info": {
+    "timestamp": "2025-06-30T00:24:41.236179",
+    "models_tested": [
+      "Llama-3.2-3B",
+      "Gemini-1.5-flash"
+    ],
+    "evaluation_type": "Intent Classification + Response Quality"
+  },
+  "intent_classification": {
+    "accuracy": 0.9930555555555556,
+    "precision": 0.9935897435897437,
+    "recall": 0.9930555555555556,
+    "f1_score": 0.9930434782608697,
+    "average_confidence": 0.959551611937035,
+    "classification_report": {
+      "disk_and_partition": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 12.0
+      },
+      "farewell": {
+        "precision": 1.0,
+        "recall": 0.9166666666666666,
+        "f1-score": 0.9565217391304348,
+        "support": 12.0
+      },
+      "file_operations": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 12.0
+      },
+      "greeting": {
+        "precision": 0.9230769230769231,
+        "recall": 1.0,
+        "f1-score": 0.96,
+        "support": 12.0
+      },
+      "networking": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 12.0
+      },
+      "other": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 12.0
+      },
+      "package_management": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 12.0
+      },
+      "process_management": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 12.0
+      },
+      "security": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 12.0
+      },
+      "system_configuration": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 12.0
+      },
+      "terminal_usage": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 12.0
+      },
+      "user_management": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 12.0
+      },
+      "accuracy": 0.9930555555555556,
+      "macro avg": {
+        "precision": 0.9935897435897436,
+        "recall": 0.9930555555555555,
+        "f1-score": 0.9930434782608696,
+        "support": 144.0
+      },
+      "weighted avg": {
+        "precision": 0.9935897435897437,
+        "recall": 0.9930555555555556,
+        "f1-score": 0.9930434782608697,
+        "support": 144.0
+      }
+    },
+    "test_samples": 144
+  },
+  "response_quality": {
+    "response_metrics": {
+      "llama_metrics": {
+        "avg_length": 0.0,
+        "error_count": 0,
+        "success_rate": 0.0
+      },
+      "gemini_metrics": {
+        "avg_length": 0.0,
+        "error_count": 0,
+        "success_rate": 0.0
+      }
+    },
+    "sample_responses": {
+      "llama_responses": [],
+      "gemini_responses": [],
+      "questions": [],
+      "true_intents": []
+    }
+  }
+}

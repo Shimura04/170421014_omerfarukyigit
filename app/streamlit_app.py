@@ -249,7 +249,7 @@ llm_gemini = ChatGoogleGenerativeAI(
     model="gemini-1.5-flash-latest",
     temperature=0.3,
     max_tokens=500,
-    google_api_key=os.getenv("GEMINI_API_KEY"),
+    google_api_key="AIzaSyDuqyG98CCFaeoBo8zVfffyGR0XmQDyXtY",
     convert_system_message_to_human=True
 )
 

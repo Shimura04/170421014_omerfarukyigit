@@ -177,7 +177,7 @@ Reaponse:"""
         # Rate limiting için kısa bekleme
         time.sleep(0.5)
     
-    print(f"✅ {len(results['questions'])} response karşılaştırması tamamlandı")
+    print(f"✅ {len(results['questions'])}")
     return results
 
 def calculate_response_metrics(response_results):
@@ -282,8 +282,6 @@ def main():
         print("="*60)
         print(f"🎯 Intent Classification Accuracy: {intent_results['accuracy']:.3f}")
         print(f"🎯 Intent Classification F1-Score: {intent_results['f1_score']:.3f}")
-        print(f"🦙 Llama Success Rate: {response_metrics['llama_metrics']['success_rate']:.3f}")
-        print(f"🤖 Gemini Success Rate: {response_metrics['gemini_metrics']['success_rate']:.3f}")
         print(f"💾 Detailed Results: {result_file}")
         print("✅ Evaluation Completed!")
         
